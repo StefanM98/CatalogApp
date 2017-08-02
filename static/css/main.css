@@ -1,0 +1,72 @@
+h1 {
+  text-align: center;
+}
+
+li {
+  font-size: 18px;
+}
+
+.logo {
+  height: 85px;
+}
+
+.navbar-default {
+  height: 120px;
+}
+.navbar-default .navbar-nav > li > a,
+.navbar-brand {
+  padding-top: 10px;
+  padding-bottom: 0;
+  line-height: 80px;
+}
+.navbar-form, .navbar-btn {
+  margin-top: 40px;
+}
+
+.navbar-btn {
+  margin-right: 20px;
+}
+
+.catagory {
+  min-height: 400px;
+  background-color: #f8f8f8;
+  -webkit-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+}
+
+.itemColumn {
+  min-height: 400px;
+  background-color: #f8f8f8;
+  -webkit-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+}
+
+.item {
+  min-height: 400px;
+}
+
+.item_name {
+  text-align: center;
+  font-size: 19px;
+}
+
+.col-md-offset-1 {
+  margin-left: 3%;
+  width: 80%;
+}
+
+
+.navbar-bottom {
+  font-size: 18px;
+  text-align: center;
+  margin-top: 50px;
+  margin-bottom: 0;
+  height: 80px;
+}
+
+.footer_content {
+  margin-top: 30px;
+  color: #999999;
+}

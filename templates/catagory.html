@@ -1,14 +1,14 @@
 <html>
 <head>
   <title>Tutu Catalog</title>
-  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+
   <!-- <link rel="stylesheet" href="static/css/media.css"> -->
-  <link rel="stylesheet" href="static/css/bootstrap.min.css">
-  <link rel="stylesheet" href="static/css/bootstrap-theme.min.css">
-  <link rel="stylesheet" href="static/css/main.css">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
   <script src="https://use.fontawesome.com/af5cc6de05.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script type="text/javascript" src="static/js/bootstrap.min.js"></script>
+  <script type="text/javascript" src="{{url_for('static', filename='js/bootstrap.min.js')}}"></script>
 </head>
 
 <body>
@@ -17,7 +17,7 @@
       <div class="container-fluid">
         <div class="navbar-header">
           <a class="navbar-brand" href="/">
-            <img class="logo" alt="Brand" src="static/images/logo.svg">
+            <img class="logo" alt="Brand" src="{{url_for('static', filename='images/logo.svg')}}">
           </a>
         </div>
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
@@ -70,13 +70,24 @@
           <h3>No catagories could be found.</h3>
           {% endif %}
         </div>
-
       </div>
+
       <div class="itemColumn col-md-9 col-md-offset-1">
-        <h2 class="catagory_title">Recently Added Items ({{recentItems|length}})</h2>
-        {% if recentItems|length > 0 %}
+        <div class="col-md-10">
+          <h2 class="catagory_title">{{catagory}} ({{items|length}})</h2>
+        </div>
+        {% if logged_in %}
+        <div class="col-md-2 item_nav">
+          <a href="{{url_for('newItem', catagory=catagory.replace(' ', '_'))}}">
+            <i class="fa fa-2x fa-plus" aria-hidden="true"></i>
+          </a>
+        </div>
+        {% endif %}
+
+        {% if items|length > 0 %}
         <div class="items">
-          {% for i in recentItems %}
+
+          {% for i in items %}
           <div class="item col-md-4">
 
             {% if logged_in %}
@@ -90,25 +101,17 @@
             </a>
             {% endif %}
 
-            <a href="../{{i.item_catagory.replace(' ', '_')}}/{{i.id}}">
+            <a href="../{{catagory.replace(' ', '_')}}/{{i.id}}">
               <img src="{{url_for('static', filename='')}}{{i.image}}">
               <h3 class="item_name">{{i.name}}</h3>
               <div class="overlay"></div>
             </a>
           </div>
-
-
-          <!-- <div class="item col-md-4">
-            <a href="/{{((i.item_catagory).replace(' ', '_'))}}/{{i.id}}">
-              <img src="static/{{i.image}}">
-              <h3 class="item_name">{{i.name}}</h3>
-            </a>
-          </div> -->
           {% endfor %}
+          {% else %}
+          <h2>No items could be found.</h2>
+          {% endif %}
         </div>
-        {% else %}
-        <h2>No items could be found.</h2>
-        {% endif %}
       </div>
     </div>
   </section>

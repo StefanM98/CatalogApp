@@ -1,0 +1,86 @@
+<html>
+<head>
+  <title>Tutu Catalog</title>
+
+  <!-- <link rel="stylesheet" href="static/css/media.css"> -->
+  <meta name="viewport" content="width=device-width, height=device-height initial-scale=1">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+  <script src="https://use.fontawesome.com/af5cc6de05.js"></script>
+  <link rel="stylesheet" href="{{url_for('static', filename='css/item.css')}}">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="{{url_for('static', filename='js/bootstrap.min.js')}}"></script>
+</head>
+
+<body>
+  <section id="header">
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/">
+            <img class="logo" alt="Brand" src="{{url_for('static', filename='images/logo.svg')}}">
+          </a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-right navbar-nav">
+            <button type="button" class="btn btn-default navbar-right navbar-btn">
+              Sign Out</button>
+            <form class="navbar-form navbar-right" role="search">
+              <div class="form-group">
+                <input type="text" class="form-control" placeholder="Search">
+              </div>
+            </form>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+  </section>
+
+  <section id="navbar">
+    <div class="container-fluid">
+      <div class="back-navbar">
+        <div class="col-md-12">
+          <a href="{{url_for('catalog')}}">
+            <i class="fa fa-4x fa-chevron-circle-left back-btn" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="main">
+    <div class="container-fluid">
+      <div class="col-md-12">
+        <i class="fa fa-6x fa-pencil-square-o" aria-hidden="true"></i>
+      </div>
+      <h1>Edit Catagory</h1>
+      <div class="container-fluid form-container">
+        <form action="{{url_for('editCatagory', catagory=catagory)}}" method="post">
+          <div class="col-md-12 form">
+            <p class="input-label">Name: </p>
+            <input class="input-text" type="text" size="17"
+              placeholder="{{catagory.replace('_', ' ')}}"
+              name="name">
+          </div>
+          <div class="col-md-12">
+            <input type="submit" value="Change">
+          </div>
+        </form>
+      </div>
+
+
+
+    </div>
+  </section>
+
+  <footer class="footer">
+    <nav class="navbar navbar-default navbar-bottom">
+      <div class="footer_content">
+        Copyright Stefan Milanovic 2017
+      </div>
+    </nav>
+  </footer>
+</body>
+
+
+</html>

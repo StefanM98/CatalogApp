@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from database_setup import Catagory, Item, Base, User
 from flask import session as login_session
 from flask import make_response
+from functools import wraps
 from werkzeug import secure_filename
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
@@ -26,6 +27,21 @@ Base.metadata.bind = engine
 DBsession = sessionmaker(bind=engine)
 session = DBsession()
 
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' in login_session: 
+            return f(*args, **kwargs)
+        else:
+            return redirect('/login')
+    return decorated_function
+
+def isOwner(thing):
+    if thing.user_id == login_session['user_id']:
+        return True
+    else:
+        return False
 
 # Create anti-forgery state token
 @app.route('/login')
@@ -362,64 +378,70 @@ def catagory(catagory):
 
 
 @app.route('/<string:catagory>/edit', methods=['GET', 'POST'])
+@login_required
 def editCatagory(catagory):
     # If user is authorized shows a page to edit a catagory
-    if 'username' in login_session:
+    
+    catagory = catagory.replace('_', ' ')
+    thisCatagory = session.query(Catagory).filter_by(name=catagory).one()
+    if isOwner(thisCatagory):
         if request.method == 'GET':
             return render_template('edit_catagory.html', catagory=catagory)
         else:
-            catagory = catagory.replace('_', ' ')
-            thisCatagory = session.query(Catagory).filter_by(
-                name=catagory).one()
             catagoryItems = session.query(Item).filter_by(
                 item_catagory=catagory).all()
             thisCatagory.name = request.form['name']
             for i in catagoryItems:
                 i.item_catagory = request.form['name']
                 session.add(i)
-            session.add(thisCatagory)
-            session.commit()
+                session.add(thisCatagory)
+                session.commit()
             return redirect(url_for(
                 'catagory',
                 catagory=thisCatagory.name.replace(' ', '_'),
                 login_session=login_session))
     else:
-        return redirect(url_for('login'))
+        response = make_response(
+        json.dumps("You do not own this catagory"), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 @app.route('/<string:catagory>/delete', methods=['GET', 'POST'])
+@login_required
 def deleteCatagory(catagory):
     # If user is authorized shows a page to delete a catagory
-    if 'username' in login_session:
+    catagory = catagory.replace('_', ' ')
+    thisCatagory = session.query(Catagory).filter_by(
+        name=catagory).one()
+    if isOwner(thisCatagory):
         if request.method == 'GET':
             return render_template('delete_catagory.html', catagory=catagory)
         else:
-            catagory = catagory.replace('_', ' ')
-            thisCatagory = session.query(Catagory).filter_by(
-                name=catagory).one()
             session.delete(thisCatagory)
             session.commit()
             return redirect(url_for('catalog'))
     else:
-        return redirect(url_for('login'))
+        response = make_response(
+        json.dumps("You do not own this catagory"), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 @app.route('/new', methods=['GET', 'POST'])
+@login_required
 def newCatagory():
     # If user is authorized shows a page to add a catagory
-    if 'username' in login_session:
-        if request.method == 'GET':
-            return render_template('add_catagory.html')
-        else:
-            newCatagory = Catagory(
-                name=request.form['name'],
-                user_id=login_session['user_id'])
-            catagory = newCatagory.name.replace(' ', '_')
-            session.add(newCatagory)
-            session.commit()
-            return redirect(url_for('catagory', catagory=catagory))
+    if request.method == 'GET':
+        return render_template('add_catagory.html')
     else:
-        return redirect(url_for('login'))
+        newCatagory = Catagory(
+            name=request.form['name'],
+            user_id=login_session['user_id'])
+        catagory = newCatagory.name.replace(' ', '_')
+        session.add(newCatagory)
+        session.commit()
+        return redirect(url_for('catagory', catagory=catagory))
 
 
 # Item Routes
@@ -459,13 +481,14 @@ def item(catagory, item):
 
 
 @app.route('/<string:catagory>/<int:item>/edit', methods=['GET', 'POST'])
+@login_required
 def editItem(catagory, item):
     # If user is authorized shows a page to edit an item
-    if 'username' in login_session:
-        catagory = catagory.replace('_', ' ')
-        thisItem = session.query(Item).filter_by(
-            item_catagory=catagory,
-            id=item).one()
+    catagory = catagory.replace('_', ' ')
+    thisItem = session.query(Item).filter_by(
+        item_catagory=catagory,
+        id=item).one()
+    if isOwner(thisItem):
         if request.method == 'GET':
             return render_template(
                 'edit_item.html',
@@ -510,17 +533,21 @@ def editItem(catagory, item):
                     catagory=catagory,
                     item=item)
     else:
-        return redirect(url_for('login'))
+        response = make_response(
+        json.dumps("You do not own this item"), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
 
 
 @app.route('/<string:catagory>/<int:item>/delete', methods=['GET', 'POST'])
+@login_required
 def deleteItem(catagory, item):
     # If user is authorized shows a page to delete an item
-    if 'username' in login_session:
-        catagory = catagory.replace('_', ' ')
-        thisItem = session.query(Item).filter_by(
-            item_catagory=catagory,
-            id=item).one()
+    catagory = catagory.replace('_', ' ')
+    thisItem = session.query(Item).filter_by(
+        item_catagory=catagory,
+        id=item).one()
+    if isOwner(thisItem):
         if request.method == 'GET':
             print (os.path.join(url_for(
                 'static', filename=''), thisItem.image))
@@ -536,33 +563,36 @@ def deleteItem(catagory, item):
                 'catagory',
                 catagory=catagory.replace(' ', '_')))
     else:
-        return redirect(url_for('login'))
+        response = make_response(
+        json.dumps("You do not own this item"), 400)
+        response.headers['Content-Type'] = 'application/json'
+        return response
+
 
 
 @app.route('/<string:catagory>/new', methods=['GET', 'POST'])
+@login_required
 def newItem(catagory):
     # If user is authorized shows a page to add a new item
-    if 'username' in login_session:
-        catagory = catagory.replace('_', ' ')
-        if request.method == 'GET':
-            return render_template('add_item.html', catagory=catagory)
-        else:
-            file = request.files['file']
-            file.save(os.path.join(
-                app.config['UPLOAD_FOLDER'],
-                secure_filename(file.filename)))
-            newItem = Item(
-                name=request.form['name'],
-                description=request.form['description'],
-                image="images/%s" % secure_filename(file.filename),
-                item_catagory=catagory,
-                user_id=login_session['user_id'])
-            session.add(newItem)
-            session.commit()
-            return redirect(url_for(
-                'catagory',
-                catagory=catagory.replace(' ', '_')))
-    return redirect(url_for('login'))
+    catagory = catagory.replace('_', ' ')
+    if request.method == 'GET':
+        return render_template('add_item.html', catagory=catagory)
+    else:
+        file = request.files['file']
+        file.save(os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            secure_filename(file.filename)))
+        newItem = Item(
+            name=request.form['name'],
+            description=request.form['description'],
+            image="images/%s" % secure_filename(file.filename),
+            item_catagory=catagory,
+            user_id=login_session['user_id'])
+        session.add(newItem)
+        session.commit()
+        return redirect(url_for(
+            'catagory',
+            catagory=catagory.replace(' ', '_')))
 
 # Start server
 if __name__ == '__main__':

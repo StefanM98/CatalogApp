@@ -64,16 +64,16 @@
           <div class="catagory-name col-md-9">
             <a href="/{{((i.name).replace(' ', '_'))}}">{{i.name}}</a>
           </div>
-          {% if 'username' in login_session %}
           <div class="catagory-buttons col-md-3">
+            {% if i.user_id == login_session['user_id'] %}
             <a href="{{url_for('editCatagory', catagory=i.name.replace(' ', '_'))}}">
               <i class="fa fa-pencil-square-o" aria-hidden="true"></i>
             </a>
             <a href="{{url_for('deleteCatagory', catagory=i.name.replace(' ', '_'))}}">
               <i class="fa fa-trash-o" aria-hidden="true"></i>
             </a>
+            {% endif %}
           </div>
-          {% endif %}
           {% endfor %}
           {% else %}
           <h3>No catagories could be found.</h3>
@@ -92,7 +92,7 @@
           {% for i in recentItems %}
           <div class="item col-md-4">
 
-            {% if 'username' in login_session %}
+            {% if i.user_id == login_session['user_id'] %}
             <a
               href="{{url_for('editItem', catagory=i.item_catagory.replace(' ', '_'), item=i.id)}}"
               class="overlay-button edit">

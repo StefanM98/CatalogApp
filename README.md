@@ -18,3 +18,11 @@ Description
 This program will start a python (flask) webserver that provides an app where users can authenticate via Google and/or Facebook in order to modify the contents of the server database. Authenticated users are given the ability to add, edit, and delete categories and category items.
 
 This app was created for my girlfriend's custom tutu business which is why the database pertains to tutus. However, none of the code (except some HTML) specifically references tutus meaning that the catalog can be relatively easily modified for another type of product.  
+
+
+
+Future Updates
+--------------
+- Add full responsiveness
+- Add flash messages for when users complete an action
+- Ensure file uploading is safe (restrict file types)

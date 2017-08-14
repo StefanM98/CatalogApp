@@ -1,22 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
-app = Flask(__name__)
-
+from flask import Flask, render_template, request, redirect, url_for, jsonify
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
 from database_setup import Catagory, Item, Base, User
-
-# New Imports for auth
 from flask import session as login_session
-import random, string
-
+from flask import make_response
+from werkzeug import secure_filename
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
+import os
+import random
+import string
 import httplib2
 import json
-from flask import make_response
 import requests
-from werkzeug import secure_filename
-import os
+
+app = Flask(__name__)
 
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
@@ -24,9 +22,8 @@ CLIENT_ID = json.loads(
 engine = create_engine('sqlite:///catalog.db')
 Base.metadata.bind = engine
 
-DBsession = sessionmaker(bind = engine)
+DBsession = sessionmaker(bind=engine)
 session = DBsession()
-
 
 
 # Create anti-forgery state token
@@ -91,8 +88,8 @@ def gconnect():
     stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
-                                 200)
+        response = make_response(
+            json.dumps('Current user is already connected.'), 200)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -118,34 +115,37 @@ def gconnect():
         user_id = createUser(login_session)
     login_session['user_id'] = user_id
 
-
     output = ''
     output += '<h1>Welcome, '
     output += login_session['username']
     output += '!</h1>'
-    output += '<img src="'
+    output += '<img class="user-image" src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
-    flash("you are now logged in as %s" % login_session['username'])
+    output += ' "> '
     print "done!"
     return output
 
+
 def createUser(login_session):
     # Creates new user in the database and returns their id
-    newUser = User(name = login_session['username'], email =
-        login_session['email'], picture = login_session['picture'])
+    newUser = User(
+        name=login_session['username'],
+        email=login_session['email'],
+        picture=login_session['picture'])
     session.add(newUser)
     session.commit()
-    user = session.query(User).filter_by(email = login_session['email']).one()
+    user = session.query(User).filter_by(email=login_session['email']).one()
     return user.id
 
+
 def getUserInfo(user_id):
-    user = session.query(User).filter_by(id = user_id).one()
+    user = session.query(User).filter_by(id=user_id).one()
     return user
+
 
 def getUserID(email):
     try:
-        user = session.query(User).filter_by(email = email).one()
+        user = session.query(User).filter_by(email=email).one()
         return user.id
     except:
         print "User not found."
@@ -162,29 +162,24 @@ def fbconnect():
     access_token = request.data
     print "access token received %s " % access_token
 
-
     app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
         'web']['app_id']
     app_secret = json.loads(
         open('fb_client_secrets.json', 'r').read())['web']['app_secret']
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
+    url = (
+        'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange'
+        '_token&client_id=%s&client_secret=%s&fb_exchange_token=%s') % (
         app_id, app_secret, access_token)
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
 
-
     # Use token to get user info from API
     userinfo_url = "https://graph.facebook.com/v2.8/me"
-    '''
-        Due to the formatting for the result from the server token exchange we have to
-        split the token first on commas and select the first index which gives us the key : value
-        for the server access token then we split it on colons to pull out the actual token value
-        and replace the remaining quotes with nothing so that it can be used directly in the graph
-        api calls
-    '''
     token = result.split(',')[0].split(':')[1].replace('"', '')
 
-    url = 'https://graph.facebook.com/v2.8/me?access_token=%s&fields=name,id,email' % token
+    url = (
+        'https://graph.facebook.com/v2.8/me?access_token=%s&'
+        'fields=name,id,email') % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     # print "url sent for API access:%s"% url
@@ -199,7 +194,9 @@ def fbconnect():
     login_session['access_token'] = token
 
     # Get user picture
-    url = 'https://graph.facebook.com/v2.8/me/picture?access_token=%s&redirect=0&height=200&width=200' % token
+    url = (
+        'https://graph.facebook.com/v2.8/me/picture?access_token=%s&'
+        'redirect=0&height=200&width=200') % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
     data = json.loads(result)
@@ -219,11 +216,9 @@ def fbconnect():
     output += '!</h1>'
     output += '<img src="'
     output += login_session['picture']
-    output += ' " style = "width: 300px; height: 300px;border-radius: 150px;-webkit-border-radius: 150px;-moz-border-radius: 150px;"> '
+    output += ' "> '
 
-    flash("Now logged in as %s" % login_session['username'])
     return output
-
 
 
 @app.route("/gdisconnect")
@@ -247,12 +242,14 @@ def disconnect():
             # Only disconnect a connected user.
             credentials = login_session.get('credentials')
             if credentials is None:
-                response = make_response(json.dumps('Current user not connected.'), 401)
+                response = make_response(
+                    json.dumps('Current user not connected.'), 401)
                 response.headers['Content-Type'] = 'application/json'
                 return response
             # Execute HTTP GET request to revoke current token.
             access_token = credentials.access_token
-            url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
+            url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % (
+                access_token)
             h = httplib2.Http()
             result = h.request(url, 'GET')[0]
 
@@ -265,16 +262,19 @@ def disconnect():
                 del login_session['picture']
                 del login_session['user_id']
 
-                response = make_response(json.dumps('Successfully disconnected.'), 200)
+                response = make_response(
+                    json.dumps('Successfully disconnected.'), 200)
                 response.headers['Content-Type'] = 'application/json'
                 return response
             else:
                 # For whatever reason, the given token was Invalid
-                response = make_response(json.dumps("Failed to revoke token for given user."), 400)
+                response = make_response(
+                    json.dumps("Failed to revoke token for given user."), 400)
                 response.headers['Content-Type'] = 'application/json'
                 return response
     else:
-        response = make_response(json.dumps("Failed to find login provider."), 400)
+        response = make_response(
+            json.dumps("Failed to find login provider."), 400)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -285,11 +285,13 @@ def JSONCatagories():
     catagories = session.query(Catagory).all()
     return jsonify(Catagory=[catagory.serialize for catagory in catagories])
 
+
 @app.route('/<string:catagory>/JSON')
 def JSONCatagory(catagory):
     catagory = catagory.replace('_', ' ')
     items = session.query(Item).filter_by(item_catagory=catagory).all()
     return jsonify(Item=[item.serialize for item in items])
+
 
 @app.route('/<string:catagory>/<string:item>/JSON')
 def JSONItem(catagory, item):
@@ -297,18 +299,21 @@ def JSONItem(catagory, item):
     item = session.query(Item).filter_by(item_catagory=catagory, id=item).one()
     return jsonify(Item=[item.serialize])
 
+
 @app.route('/')
 def catalog():
     # Checks if user is logged in and then returns the correct home page
     rule = request.url_rule
     catagories = session.query(Catagory).all()
-    #catagories = ["Holidays", "Seasons", "My Little Poney", "Disney"]
-    recentItems = session.query(Item).order_by(desc(Item.time_created)).limit(3).all()
-    return render_template('home.html',
-    catagories=catagories,
-    recentItems=recentItems,
-    login_session=login_session,
-    rule=rule)
+    recentItems = session.query(Item).order_by(
+        desc(Item.time_created)).limit(3).all()
+    return render_template(
+            'home.html',
+            catagories=catagories,
+            recentItems=recentItems,
+            login_session=login_session,
+            rule=rule)
+
 
 @app.route('/search', methods=['POST'])
 def searchCatalog():
@@ -316,12 +321,13 @@ def searchCatalog():
     rule = request.url_rule
     searchItems = session.query(Item).filter(Item.name.contains(query)).all()
     catagories = session.query(Catagory).all()
-    return render_template('home.html',
-    catagories=catagories,
-    recentItems=searchItems,
-    login_session=login_session,
-    rule=rule,
-    query=query)
+    return render_template(
+        'home.html',
+        catagories=catagories,
+        recentItems=searchItems,
+        login_session=login_session,
+        rule=rule,
+        query=query)
 
 
 # Login Routes
@@ -338,8 +344,6 @@ def logout():
     return "Logout Page"
 
 
-
-
 # Catagory Routes
 
 @app.route('/<string:catagory>')
@@ -349,11 +353,12 @@ def catagory(catagory):
     catagory = catagory.replace('_', ' ')
     catagories = session.query(Catagory).all()
     items = session.query(Item).filter_by(item_catagory=catagory).all()
-    return render_template('catagory.html',
-    catagories=catagories,
-    catagory=catagory,
-    items=items,
-    login_session=login_session)
+    return render_template(
+        'catagory.html',
+        catagories=catagories,
+        catagory=catagory,
+        items=items,
+        login_session=login_session)
 
 
 @app.route('/<string:catagory>/edit', methods=['GET', 'POST'])
@@ -364,15 +369,18 @@ def editCatagory(catagory):
             return render_template('edit_catagory.html', catagory=catagory)
         else:
             catagory = catagory.replace('_', ' ')
-            thisCatagory = session.query(Catagory).filter_by(name=catagory).one()
-            catagoryItems = session.query(Item).filter_by(item_catagory=catagory).all()
+            thisCatagory = session.query(Catagory).filter_by(
+                name=catagory).one()
+            catagoryItems = session.query(Item).filter_by(
+                item_catagory=catagory).all()
             thisCatagory.name = request.form['name']
             for i in catagoryItems:
                 i.item_catagory = request.form['name']
                 session.add(i)
             session.add(thisCatagory)
             session.commit()
-            return redirect(url_for('catagory',
+            return redirect(url_for(
+                'catagory',
                 catagory=thisCatagory.name.replace(' ', '_'),
                 login_session=login_session))
     else:
@@ -387,7 +395,8 @@ def deleteCatagory(catagory):
             return render_template('delete_catagory.html', catagory=catagory)
         else:
             catagory = catagory.replace('_', ' ')
-            thisCatagory = session.query(Catagory).filter_by(name=catagory).one()
+            thisCatagory = session.query(Catagory).filter_by(
+                name=catagory).one()
             session.delete(thisCatagory)
             session.commit()
             return redirect(url_for('catalog'))
@@ -402,15 +411,15 @@ def newCatagory():
         if request.method == 'GET':
             return render_template('add_catagory.html')
         else:
-            newCatagory = Catagory(name=request.form['name'], user_id=login_session['user_id'])
+            newCatagory = Catagory(
+                name=request.form['name'],
+                user_id=login_session['user_id'])
             catagory = newCatagory.name.replace(' ', '_')
             session.add(newCatagory)
             session.commit()
             return redirect(url_for('catagory', catagory=catagory))
     else:
         return redirect(url_for('catalog'))
-
-
 
 
 # Item Routes
@@ -421,7 +430,9 @@ def item(catagory, item):
     # return ("Page for %s, in the %s catagory" % (item, catagory))
     catagory = catagory.replace('_', ' ')
     try:
-        thisItem = session.query(Item).filter_by(id=item, item_catagory=catagory).one()
+        thisItem = session.query(Item).filter_by(
+            id=item,
+            item_catagory=catagory).one()
     except:
         return "No item was found."
     items = session.query(Item).filter_by(item_catagory=catagory).all()
@@ -429,31 +440,37 @@ def item(catagory, item):
 
     try:
         prev_item = session.query(Item).order_by(Item.id.desc()).filter(
-        Item.id < thisItem.id).filter_by(item_catagory=catagory).first()
+            Item.id < thisItem.id).filter_by(item_catagory=catagory).first()
     except:
         print "No more previous items"
         prev_item = ''
 
     try:
         next_item = session.query(Item).order_by(Item.id.asc()).filter(
-        Item.id > thisItem.id).filter_by(item_catagory=catagory).first()
+            Item.id > thisItem.id).filter_by(item_catagory=catagory).first()
     except:
         print "No more items"
         next_item = ''
 
-    return render_template('item.html', catagory=catagory, item=thisItem,
-        items=items, user=user, login_session=login_session, session=session,
-        prev_item=prev_item, next_item=next_item)
+    return render_template(
+            'item.html', catagory=catagory, item=thisItem,
+            items=items, user=user, login_session=login_session,
+            session=session, prev_item=prev_item, next_item=next_item)
 
 
 @app.route('/<string:catagory>/<int:item>/edit', methods=['GET', 'POST'])
 def editItem(catagory, item):
     # If user is authorized shows a page to edit an item
-    #return ("Edit page for %s, in the %s catagory" % (item, catagory))
     catagory = catagory.replace('_', ' ')
-    thisItem = session.query(Item).filter_by(item_catagory=catagory, id=item).one()
+    thisItem = session.query(Item).filter_by(
+        item_catagory=catagory,
+        id=item).one()
     if request.method == 'GET':
-        return render_template('edit_item.html', catagory=catagory, item=item, thisItem=thisItem)
+        return render_template(
+            'edit_item.html',
+            catagory=catagory,
+            item=item,
+            thisItem=thisItem)
     else:
         changes = 0
 
@@ -471,7 +488,9 @@ def editItem(catagory, item):
                     os.remove(os.path.join('./static', thisItem.image))
                 except:
                     print "Previous image not found."
-                file.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename)))
+                file.save(os.path.join(
+                    app.config['UPLOAD_FOLDER'],
+                    secure_filename(file.filename)))
                 thisItem.image = "images/%s" % secure_filename(file.filename)
                 changes += 1
 
@@ -480,26 +499,36 @@ def editItem(catagory, item):
             session.add(thisItem)
             session.commit()
             print "Updated Database."
-            flash("Item Successfully Edited")
-            return redirect(url_for('catagory', catagory=catagory.replace(' ', '_')))
+            return redirect(url_for(
+                'catagory',
+                catagory=catagory.replace(' ', '_')))
         else:
-            flash("ERROR: Please make a change or click the back arrow.")
-            return render_template('edit_item.html', catagory=catagory, item=item)
+            return render_template(
+                'edit_item.html',
+                catagory=catagory,
+                item=item)
 
 
 @app.route('/<string:catagory>/<int:item>/delete', methods=['GET', 'POST'])
 def deleteItem(catagory, item):
     # If user is authorized shows a page to delete an item
     catagory = catagory.replace('_', ' ')
-    thisItem = session.query(Item).filter_by(item_catagory=catagory, id=item).one()
+    thisItem = session.query(Item).filter_by(
+        item_catagory=catagory,
+        id=item).one()
     if request.method == 'GET':
         print (os.path.join(url_for('static', filename=''), thisItem.image))
-        return render_template('delete_item.html', catagory=catagory, item=item)
+        return render_template(
+            'delete_item.html',
+            catagory=catagory,
+            item=item)
     else:
         os.remove(os.path.join('./static', thisItem.image))
         session.delete(thisItem)
         session.commit()
-        return redirect(url_for('catagory', catagory=catagory.replace(' ', '_')))
+        return redirect(url_for(
+            'catagory',
+            catagory=catagory.replace(' ', '_')))
 
 
 @app.route('/<string:catagory>/new', methods=['GET', 'POST'])
@@ -510,22 +539,26 @@ def newItem(catagory):
         return render_template('add_item.html', catagory=catagory)
     else:
         file = request.files['file']
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(file.filename)))
-        newItem = Item(name=request.form['name'],
+        file.save(os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            secure_filename(file.filename)))
+        newItem = Item(
+            name=request.form['name'],
             description=request.form['description'],
-            image = "images/%s" % secure_filename(file.filename),
+            image="images/%s" % secure_filename(file.filename),
             item_catagory=catagory,
             user_id=login_session['user_id'])
         session.add(newItem)
         session.commit()
-        return redirect(url_for('catagory', catagory=catagory.replace(' ', '_')))
-
+        return redirect(url_for(
+            'catagory',
+            catagory=catagory.replace(' ', '_')))
 
 
 # Start server
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
-    app.static_folder='static'
+    app.static_folder = 'static'
     app.config['UPLOAD_FOLDER'] = './static/images/'
     app.debug = True
     app.run(host='0.0.0.0', port=5000)

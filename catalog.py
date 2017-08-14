@@ -7,6 +7,7 @@ from flask import make_response
 from werkzeug import secure_filename
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
+from oauth2client import client, crypt
 import os
 import random
 import string
@@ -44,18 +45,22 @@ def gconnect():
         response.headers['Content-Type'] = 'application/json'
         return response
     # Obtain authorization code
-    code = request.data
+    auth_code = request.data
 
-    try:
-        # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
-        oauth_flow.redirect_uri = 'postmessage'
-        credentials = oauth_flow.step2_exchange(code)
-    except FlowExchangeError:
+    # If this request does not have `X-Requested-With` header, may be a CSRF
+    if not request.headers.get('X-Requested-With'):
         response = make_response(
-            json.dumps('Failed to upgrade the authorization code.'), 401)
+            json.dumps('Missing X-Requested-With header'), 401)
         response.headers['Content-Type'] = 'application/json'
         return response
+
+    CLIENT_SECRET_FILE = 'client_secrets.json'
+
+    # Exchange auth code
+    credentials = client.credentials_from_clientsecrets_and_code(
+        CLIENT_SECRET_FILE,
+        ['profile', 'email', 'openid'],
+        auth_code)
 
     # Check that the access token is valid.
     access_token = credentials.access_token
@@ -63,6 +68,7 @@ def gconnect():
            % access_token)
     h = httplib2.Http()
     result = json.loads(h.request(url, 'GET')[1])
+
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
         response = make_response(json.dumps(result.get('error')), 500)
@@ -182,8 +188,6 @@ def fbconnect():
         'fields=name,id,email') % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
-    # print "url sent for API access:%s"% url
-    # print "API JSON result: %s" % result
     data = json.loads(result)
     login_session['provider'] = 'facebook'
     login_session['username'] = data["name"]
@@ -237,7 +241,7 @@ def disconnect():
             del login_session['picture']
             del login_session['user_id']
             del login_session['facebook_id']
-            return "you have been logged out"
+            return redirect(url_for('catalog'))
         if login_session['provider'] == 'google':
             # Only disconnect a connected user.
             credentials = login_session.get('credentials')
@@ -262,10 +266,7 @@ def disconnect():
                 del login_session['picture']
                 del login_session['user_id']
 
-                response = make_response(
-                    json.dumps('Successfully disconnected.'), 200)
-                response.headers['Content-Type'] = 'application/json'
-                return response
+                return redirect(url_for('catalog'))
             else:
                 # For whatever reason, the given token was Invalid
                 response = make_response(
@@ -340,7 +341,7 @@ def login():
 
 @app.route('/logout')
 def logout():
-    # Logsout the user
+    # Logs out the user
     return "Logout Page"
 
 
@@ -349,7 +350,6 @@ def logout():
 @app.route('/<string:catagory>')
 def catagory(catagory):
     #  Returns page for selected catagory
-    # return "Page for %s" % catagory
     catagory = catagory.replace('_', ' ')
     catagories = session.query(Catagory).all()
     items = session.query(Item).filter_by(item_catagory=catagory).all()
@@ -384,7 +384,7 @@ def editCatagory(catagory):
                 catagory=thisCatagory.name.replace(' ', '_'),
                 login_session=login_session))
     else:
-        redirect(url_for('catagory', catagory=catagory))
+        return redirect(url_for('login'))
 
 
 @app.route('/<string:catagory>/delete', methods=['GET', 'POST'])
@@ -401,7 +401,7 @@ def deleteCatagory(catagory):
             session.commit()
             return redirect(url_for('catalog'))
     else:
-        redirect(url_for('catagory', catagory=catagory))
+        return redirect(url_for('login'))
 
 
 @app.route('/new', methods=['GET', 'POST'])
@@ -419,7 +419,7 @@ def newCatagory():
             session.commit()
             return redirect(url_for('catagory', catagory=catagory))
     else:
-        return redirect(url_for('catalog'))
+        return redirect(url_for('login'))
 
 
 # Item Routes
@@ -461,99 +461,108 @@ def item(catagory, item):
 @app.route('/<string:catagory>/<int:item>/edit', methods=['GET', 'POST'])
 def editItem(catagory, item):
     # If user is authorized shows a page to edit an item
-    catagory = catagory.replace('_', ' ')
-    thisItem = session.query(Item).filter_by(
-        item_catagory=catagory,
-        id=item).one()
-    if request.method == 'GET':
-        return render_template(
-            'edit_item.html',
-            catagory=catagory,
-            item=item,
-            thisItem=thisItem)
-    else:
-        changes = 0
-
-        # Checks for User Input
-        if (request.form['name'] != ""):
-            thisItem.name = request.form['name']
-            changes += 1
-        if (request.form['description'] != ""):
-            thisItem.description = request.form['description']
-            changes += 1
-        if 'file' in request.files:
-            file = request.files['file']
-            if file.filename != '':
-                try:
-                    os.remove(os.path.join('./static', thisItem.image))
-                except:
-                    print "Previous image not found."
-                file.save(os.path.join(
-                    app.config['UPLOAD_FOLDER'],
-                    secure_filename(file.filename)))
-                thisItem.image = "images/%s" % secure_filename(file.filename)
-                changes += 1
-
-        if (changes > 0):
-            thisItem.user_id = login_session['user_id']
-            session.add(thisItem)
-            session.commit()
-            print "Updated Database."
-            return redirect(url_for(
-                'catagory',
-                catagory=catagory.replace(' ', '_')))
-        else:
+    if 'username' in login_session:
+        catagory = catagory.replace('_', ' ')
+        thisItem = session.query(Item).filter_by(
+            item_catagory=catagory,
+            id=item).one()
+        if request.method == 'GET':
             return render_template(
                 'edit_item.html',
                 catagory=catagory,
-                item=item)
+                item=item,
+                thisItem=thisItem)
+        else:
+            changes = 0
+
+            # Checks for User Input
+            if (request.form['name'] != ""):
+                thisItem.name = request.form['name']
+                changes += 1
+            if (request.form['description'] != ""):
+                thisItem.description = request.form['description']
+                changes += 1
+            if 'file' in request.files:
+                file = request.files['file']
+                if file.filename != '':
+                    try:
+                        os.remove(os.path.join('./static', thisItem.image))
+                    except:
+                        print "Previous image not found."
+                    file.save(os.path.join(
+                        app.config['UPLOAD_FOLDER'],
+                        secure_filename(file.filename)))
+                    thisItem.image = "images/%s" % secure_filename(
+                        file.filename)
+                    changes += 1
+
+            if (changes > 0):
+                thisItem.user_id = login_session['user_id']
+                session.add(thisItem)
+                session.commit()
+                print "Updated Database."
+                return redirect(url_for(
+                    'catagory',
+                    catagory=catagory.replace(' ', '_')))
+            else:
+                return render_template(
+                    'edit_item.html',
+                    catagory=catagory,
+                    item=item)
+    else:
+        return redirect(url_for('login'))
 
 
 @app.route('/<string:catagory>/<int:item>/delete', methods=['GET', 'POST'])
 def deleteItem(catagory, item):
     # If user is authorized shows a page to delete an item
-    catagory = catagory.replace('_', ' ')
-    thisItem = session.query(Item).filter_by(
-        item_catagory=catagory,
-        id=item).one()
-    if request.method == 'GET':
-        print (os.path.join(url_for('static', filename=''), thisItem.image))
-        return render_template(
-            'delete_item.html',
-            catagory=catagory,
-            item=item)
+    if 'username' in login_session:
+        catagory = catagory.replace('_', ' ')
+        thisItem = session.query(Item).filter_by(
+            item_catagory=catagory,
+            id=item).one()
+        if request.method == 'GET':
+            print (os.path.join(url_for(
+                'static', filename=''), thisItem.image))
+            return render_template(
+                'delete_item.html',
+                catagory=catagory,
+                item=item)
+        else:
+            os.remove(os.path.join('./static', thisItem.image))
+            session.delete(thisItem)
+            session.commit()
+            return redirect(url_for(
+                'catagory',
+                catagory=catagory.replace(' ', '_')))
     else:
-        os.remove(os.path.join('./static', thisItem.image))
-        session.delete(thisItem)
-        session.commit()
-        return redirect(url_for(
-            'catagory',
-            catagory=catagory.replace(' ', '_')))
+        return redirect(url_for('login'))
 
 
 @app.route('/<string:catagory>/new', methods=['GET', 'POST'])
 def newItem(catagory):
     # If user is authorized shows a page to add a new item
-    catagory = catagory.replace('_', ' ')
-    if request.method == 'GET':
-        return render_template('add_item.html', catagory=catagory)
-    else:
-        file = request.files['file']
-        file.save(os.path.join(
-            app.config['UPLOAD_FOLDER'],
-            secure_filename(file.filename)))
-        newItem = Item(
-            name=request.form['name'],
-            description=request.form['description'],
-            image="images/%s" % secure_filename(file.filename),
-            item_catagory=catagory,
-            user_id=login_session['user_id'])
-        session.add(newItem)
-        session.commit()
-        return redirect(url_for(
-            'catagory',
-            catagory=catagory.replace(' ', '_')))
-
+    if 'username' in login_session:
+        catagory = catagory.replace('_', ' ')
+        if request.method == 'GET':
+            return render_template('add_item.html', catagory=catagory)
+        else:
+            file = request.files['file']
+            file.save(os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                secure_filename(file.filename)))
+            newItem = Item(
+                name=request.form['name'],
+                description=request.form['description'],
+                image="images/%s" % secure_filename(file.filename),
+                item_catagory=catagory,
+                user_id=login_session['user_id'])
+            session.add(newItem)
+            session.commit()
+            return redirect(url_for(
+                'catagory',
+                catagory=catagory.replace(' ', '_')))
+    return redirect(url_for('login'))
 
 # Start server
 if __name__ == '__main__':

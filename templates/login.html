@@ -9,10 +9,23 @@
   <link rel="stylesheet" href="{{url_for('static', filename='css/login.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
   <script src="https://use.fontawesome.com/af5cc6de05.js"></script>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
   </script>
-  <script src="//apis.google.com/js/platform.js?onload=start"> </script>
+  <script src="https://apis.google.com/js/client:platform.js?onload=start" async defer>
+  </script>
+
+  <script>
+    function start() {
+      gapi.load('auth2', function() {
+        auth2 = gapi.auth2.init({
+          client_id: '295062732555-lhtidhr8p5ebe62eiq735numfp854q7v.apps.googleusercontent.com'
+          // Scopes to request in addition to 'profile' and 'email'
+          //scope: 'additional_scope'
+        });
+      });
+    }
+  </script>
+
 </head>
 <body>
   <section id="header">
@@ -55,18 +68,13 @@
         <h1>Login</h1>
         <h2>Please Login with one of the services bellow.</h2>
         <!-- Google Plus Sign In -->
-          <div class="g-signin2"
-              data-scope="openid email"
-              data-redirecturi="postmessage"
-              data-acesstype="offline"
-              data-cookiepolicy="single_host_orgin"
-              data-onsuccess="signInCallback"
-              data-onfailure="failureCallback"
-              data-approvalprompt="force"
-              data-width="200"
-              data-theme="dark">
-              Google
-          </div>
+        <button id="signinButton">Sign in with Google</button>
+        <script>
+          $('#signinButton').click(function() {
+          // signInCallback defined in step 6.
+          auth2.grantOfflineAccess().then(signInCallback);
+          });
+        </script>
 
           <!-- Facebook Sign In -->
           <div class="fb-login-button"
@@ -93,40 +101,76 @@
 
 
   <!-- Start Google Plus Sign In -->
+  
   <script>
-  function signInCallback(authResult) {
-    if (authResult['code']) {
-      // Hide the sign-in button now that the user is authorized
-      $('#login').attr('style', 'display: none');
-      // Send the one-time-use code to the server, if the server responds, write a 'login successful' message to the web page and then redirect back to the main restaurants page
-      $.ajax({
-        type: 'POST',
-        url: '/gconnect?state={{STATE}}',
-        processData: false,
-        data: authResult['code'],
-        contentType: 'application/octet-stream; charset=utf-8',
-        success: function(result) {
-          // Handle or verify the server response if necessary.
-          if (result) {
-            $('#result').html('Login Successful!</br>'+ result + '</br>Redirecting...')
-           setTimeout(function() {
-            window.location.href = "/";
-           }, 4000);
+    function signInCallback(authResult) {
+      if (authResult['code']) {
+    
+        // Hide the sign-in button now that the user is authorized, for example:
+        $('#login').attr('style', 'display: none');
+    
+        // Send the code to the server
+        $.ajax({
+          type: 'POST',
+          url: '/gconnect?state={{STATE}}',
+          // Always include an `X-Requested-With` header in every AJAX request,
+          // to protect against CSRF attacks.
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          contentType: 'application/octet-stream; charset=utf-8',
+          success: function(result) {
+            // Handle or verify the server response.
+            if (result) {
+              $('#result').html('Login Successful!</br>'+ result + '</br>Redirecting...')
+              setTimeout(function() {
+              window.location.href = "/";
+              }, 4000);
 
-        } else if (authResult['error']) {
-      console.log('There was an error: ' + authResult['error']);
-    } else {
-          $('#result').html('Failed to make a server-side call. Check your configuration and console.');
-           }
+            } else if (authResult['error']) {
+              console.log('There was an error: ' + authResult['error']);
+            } else {
+              $('#result').html('Failed to make a server-side call. Check your configuration and console.');
+              }
+          },
+          processData: false,
+          data: authResult['code']
+        });
+      } else {
+        // There was an error.
+        
+      }
+    }
+    </script>
+  
+  <!-- <script>
+  function signInCallback(googleUser) {
+    // Hide the sign-in button now that the user is authorized
+    $('#login').attr('style', 'display: none');
+    // Send the one-time-use code to the server, if the server responds, write a 'login successful' message to the web page and then redirect
+    $.ajax({
+      type: 'POST',
+      url: '/gconnect?state={{STATE}}',
+      processData: false,
+      data: ('code='+ (googleUser.getAuthResponse().access_token)),
+      contentType: 'application/octet-stream; charset=utf-8',
+      success: function(result) {
+        // Handle or verify the server response if necessary.
+        if (result) {
+          $('#result').html('Login Successful!</br>'+ result + '</br>Redirecting...')
+          setTimeout(function() {
+          window.location.href = "/";
+          }, 4000);
         }
+      }
 
-    }); } }
+    }); }
 
   function failureCallback(authResult) {
     console.log('There was an error: ' + authResult['error']);
   }
 
-  </script>
+  </script> -->
 
 
   <!-- End Google Plus Sign in -->

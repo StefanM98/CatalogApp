@@ -1,12 +1,184 @@
 <html>
 <head>
-  <title>Tutu Catalog - Login</title>
-
+  <title>Tutu Catalog</title>
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1">
+  <meta name="google-signin-client_id" content="295062732555-lhtidhr8p5ebe62eiq735numfp854q7v.apps.googleusercontent.com">
+  <!-- <link rel="stylesheet" href="static/css/media.css"> -->
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/login.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+  <script src="https://use.fontawesome.com/af5cc6de05.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js">
+  </script>
+  <script src="//apis.google.com/js/platform.js?onload=start"> </script>
 </head>
-
 <body>
+  <section id="header">
+    <nav class="navbar navbar-default">
+      <div class="container-fluid">
+        <div class="navbar-header">
+          <a class="navbar-brand" href="/">
+            <img class="logo" alt="Brand" src="{{url_for('static', filename='images/logo.svg')}}">
+          </a>
+        </div>
+        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+          <ul class="nav navbar-right navbar-nav">
+            {% if 'username' not in login_session %}
+            <form class="navbar-right" action="{{url_for('showLogin')}}">
+              <button type="submit" class="btn btn-default navbar-right navbar-btn">Sign In</button>
+            </form>
+            {% else %}
+            <form class="navbar-right" action="{{url_for('disconnect')}}">
+              <button type="submit" class="btn btn-default navbar-right navbar-btn">Sign Out</button>
+            </form>
+            {% endif %}
+            <form class="navbar-form navbar-right" method="post" action="{{url_for('searchCatalog')}}">
+              <div class="form-group">
+                <input type="text" class="form-control" name="search" placeholder="Search">
+              </div>
+            </form>
+          </ul>
+        </div><!-- /.navbar-collapse -->
+      </div><!-- /.container-fluid -->
+    </nav>
+  </section>
 
+
+  <section id="main">
+    <div class="container">
+      <div class="col-md-12 main-div">
+        <img class="logo-big" alt="Brand" src="{{url_for('static', filename='images/logo.svg')}}">
+
+      <div id="login">
+        <h1>Login</h1>
+        <h2>Please Login with one of the services bellow.</h2>
+        <!-- Google Plus Sign In -->
+          <div class="g-signin2"
+              data-scope="openid email"
+              data-redirecturi="postmessage"
+              data-acesstype="offline"
+              data-cookiepolicy="single_host_orgin"
+              data-onsuccess="signInCallback"
+              data-onfailure="failureCallback"
+              data-approvalprompt="force"
+              data-width="200"
+              data-theme="dark">
+              Google
+          </div>
+
+          <!-- Facebook Sign In -->
+          <div class="fb-login-button"
+            data-width="200"
+            data-max-rows="1"
+            data-size="large"
+            data-button-type="continue_with"
+            data-show-faces="false"
+            data-auto-logout-link="false"
+            data-use-continue-as="true"
+            onlogin="sendTokenToServer();">
+          </div>
+      </div>
+
+      <div id="result"></div>
+
+    </div>
+
+    </div>
+
+  </section>
+
+
+
+
+  <!-- Start Google Plus Sign In -->
+  <script>
+  function signInCallback(authResult) {
+    if (authResult['code']) {
+      // Hide the sign-in button now that the user is authorized
+      $('#login').attr('style', 'display: none');
+      // Send the one-time-use code to the server, if the server responds, write a 'login successful' message to the web page and then redirect back to the main restaurants page
+      $.ajax({
+        type: 'POST',
+        url: '/gconnect?state={{STATE}}',
+        processData: false,
+        data: authResult['code'],
+        contentType: 'application/octet-stream; charset=utf-8',
+        success: function(result) {
+          // Handle or verify the server response if necessary.
+          if (result) {
+            $('#result').html('Login Successful!</br>'+ result + '</br>Redirecting...')
+           setTimeout(function() {
+            window.location.href = "/";
+           }, 4000);
+
+        } else if (authResult['error']) {
+      console.log('There was an error: ' + authResult['error']);
+    } else {
+          $('#result').html('Failed to make a server-side call. Check your configuration and console.');
+           }
+        }
+
+    }); } }
+
+  function failureCallback(authResult) {
+    console.log('There was an error: ' + authResult['error']);
+  }
+
+  </script>
+
+
+  <!-- End Google Plus Sign in -->
+
+
+  <!-- Start Facebook Sign in -->
+  <script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '1621722401203137',
+      xfbml      : true,
+      version    : 'v2.8'
+    });
+    FB.AppEvents.logPageView();
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "//connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+
+
+    function sendTokenToServer() {
+      var access_token = FB.getAuthResponse()['accessToken'];
+      console.log('Welcome! Fetching your acess token...');
+      console.log(access_token)
+      FB.api('/me', function(response) {
+        console.log('Successful login for: ' + response.name);
+          // Hide the sign-in button now that the user is authorized
+          $('#login').attr('style', 'display: none');
+
+        $.ajax({
+          type: 'POST',
+          url:  '/fbconnect?state={{STATE}}',
+          processData: false,
+          data: access_token,
+          contentType: 'application/octet-stream; charset=utf-8',
+          success: function(result) {
+            //Handle or verify the server response if necessary.
+            if (result) {
+              $('#result').html('Login Successful!</br>' + result + '</br>Redirecting...')
+              setTimeout(function() {
+                window.location.href = "/";
+              }, 4000)
+            }
+          }
+        })
+      })
+    }
+  </script>
 </body>
-
-
 </html>

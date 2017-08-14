@@ -5,10 +5,10 @@
   <!-- <link rel="stylesheet" href="static/css/media.css"> -->
   <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap.min.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='css/bootstrap-theme.min.css')}}">
+  <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='css/item.css')}}">
   <script src="https://use.fontawesome.com/af5cc6de05.js"></script>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-  <script type="text/javascript" src="{{url_for('static', filename='js/bootstrap.min.js')}}"></script>
 </head>
 
 <body>
@@ -22,11 +22,18 @@
         </div>
         <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
           <ul class="nav navbar-right navbar-nav">
-            <button type="button" class="btn btn-default navbar-right navbar-btn">
-              Sign in</button>
-            <form class="navbar-form navbar-right" role="search">
+            {% if 'username' not in login_session %}
+            <form class="navbar-right" action="{{url_for('showLogin')}}">
+              <button type="submit" class="btn btn-default navbar-right navbar-btn">Sign In</button>
+            </form>
+            {% else %}
+            <form class="navbar-right" action="{{url_for('disconnect')}}">
+              <button type="submit" class="btn btn-default navbar-right navbar-btn">Sign Out</button>
+            </form>
+            {% endif %}
+            <form class="navbar-form navbar-right" method="post" action="{{url_for('searchCatalog')}}">
               <div class="form-group">
-                <input type="text" class="form-control" placeholder="Search">
+                <input type="text" class="form-control" name="search" placeholder="Search">
               </div>
             </form>
           </ul>
@@ -37,12 +44,11 @@
 
   <section id="navbar-nav">
     <div class="container-fluid">
-
       <div class="col-md-1">
-        <a href={% if item.id < 2 %}
+        <a href={% if not prev_item %}
           "#" class="disabled"
           {% else %}
-          "{{url_for('item', catagory=catagory.replace(' ', '_'), item=item.id-1)}}"
+          "{{url_for('item', catagory=catagory.replace(' ', '_'), item=prev_item.id)}}"
           {% endif %}>
           <i class="fa fa-4x fa-chevron-circle-left" aria-hidden="true"></i>
         </a>
@@ -50,13 +56,16 @@
 
       <div class="col-md-2 col-md-offset-4">
         <h1>{{catagory}}</h1>
+        <a href="{{url_for('catagory', catagory=catagory.replace(' ', '_'))}}">
+          back to catagory
+        </a>
       </div>
 
       <div class="col-md-1 col-md-offset-4">
-        <a href={% if item.id == items|length %}
+        <a href={% if not next_item %}
           "#" class="disabled"
           {% else %}
-          "{{url_for('item', catagory=catagory.replace(' ', '_'), item=item.id+1)}}"
+          "{{url_for('item', catagory=catagory.replace(' ', '_'), item=next_item.id)}}"
           {% endif %}>
           <i class="fa fa-4x fa-chevron-circle-right" aria-hidden="true"></i>
         </a>

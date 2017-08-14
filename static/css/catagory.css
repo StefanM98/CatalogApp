@@ -1,0 +1,106 @@
+
+/* This css file is used on any page which displays items and/or catagories */
+
+.catagory {
+  height: 600px;
+  background-color: #f8f8f8;
+  -webkit-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+}
+
+.catagories {
+  padding: 0;
+}
+
+.catagory-nav {
+  text-align: right;
+  padding-top: 19px;
+}
+
+.catagory_title {
+  margin-bottom: 40px;
+}
+
+.catagory-name {
+  padding-right: 0;
+  font-size: 16px;
+}
+
+.catagory-buttons {
+  padding: 0;
+  padding-right: 15px;
+  font-size: 1.5em;
+  text-align: right;
+}
+
+.itemColumn {
+  min-height: 400px;
+  background-color: #f8f8f8;
+  -webkit-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  -moz-box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+  box-shadow: 10px 10px 5px 0px rgba(0,0,0,0.24);
+}
+
+.item {
+  padding-top: 50px;
+  padding-bottom: 50px;
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 26, 117, 0);
+  transition: background 0.5s ease;
+
+}
+
+.overlay-button {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+  padding: 40px 40px;
+  text-align: center;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity .35s ease;
+}
+
+.edit {
+  left: 25%;
+  top: 73%;
+}
+
+.delete {
+  left: 49%;
+  top: 73%;
+}
+
+.item:hover .overlay-button {
+  opacity: 1;
+  z-index: 1;
+}
+
+.item:hover .overlay {
+  display: block;
+  background: rgba(255, 26, 117, 0.15);
+}
+
+.item_name {
+  text-align: center;
+  font-size: 19px;
+}
+
+.item_nav {
+  text-align: right;
+  padding-top: 19px;
+}
+
+.col-md-offset-1 {
+  margin-left: 3%;
+  width: 80%;
+}

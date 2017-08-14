@@ -1,0 +1,59 @@
+
+/* This css file is used on any page where items are added edited
+  and/or deleted */
+
+body {
+  text-align: center;
+}
+
+.back-navbar {
+  text-align: left;
+}
+
+.fa-archive, .fa-pencil-square-o, .fa-trash-o {
+  font-size: 10em;
+  color: #ff1a75;
+  margin-top: 50px;
+}
+
+input[type="submit"] {
+  margin-top: 20px;
+  width: 280px;
+  height: 35px;
+}
+
+input[type="file"] {
+  margin-left: 40px;
+  margin-top: 18px;
+}
+
+.input-label {
+  text-align: right;
+  margin-left: 10%;
+}
+
+.input-text {
+  text-align: left;
+  height: 30px;
+  margin-top: 4%;
+  margin-left: 10%;
+  font-size: 18px;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.form-container {
+  width: 500px;
+
+}
+
+.description {
+  margin-bottom: 30px;
+}
+
+.imagelabel {
+  margin-left: 80px;
+}

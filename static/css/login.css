@@ -1,0 +1,23 @@
+
+body {
+  text-align: center;
+}
+
+.logo-big {
+  max-width: 500px;
+}
+
+.login {
+  text-align: center;
+  margin: auto;
+}
+
+.g-signin2{
+  width: 100%;
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.g-signin2 > div{
+  margin: 0 auto;
+}

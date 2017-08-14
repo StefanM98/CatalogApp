@@ -7,9 +7,10 @@ To Run
 ------
 
 1. Ensure python is installed
-2. Navigate to the script directory
-3. Start the server by running catalog.py
+2. Open command prompt and navigate to the script directory (Example: cd C:\Users\Public\CatalogApp)
+3. Start the server by entering 'python catalog.py'
 4. Access the app by navigating to http://localhost:5000
+5. To stop the server use Ctrl+C
 
 
 Description
